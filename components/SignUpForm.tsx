@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -47,7 +48,16 @@ export default function SignUpForm() {
     },
   });
 
+  // Debug: log errors on each render
+  React.useEffect(() => {
+    if (Object.keys(errors).length > 0) {
+      console.log("Validation errors:", errors);
+    }
+  }, [errors]);
+
   const onSubmit = async (data: z.infer<typeof signUpSchema>) => {
+  console.log("onSubmit called", data, "isLoaded:", isLoaded);
+
     if (!isLoaded) return;
 
     setIsSubmitting(true);
@@ -62,7 +72,10 @@ export default function SignUpForm() {
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
       setVerifying(true);
     } catch (error: any) {
-      console.error("Sign-up error:", error);
+      // Only log unexpected errors, not expected auth errors
+      if (!error.errors?.[0]?.message) {
+        console.error("Sign-up error:", error);
+      }
       setAuthError(
         error.errors?.[0]?.message ||
           "An error occurred during sign-up. Please try again."
@@ -114,7 +127,7 @@ export default function SignUpForm() {
             Verify Your Email
           </h1>
           <p className="text-default-500 text-center">
-            We&apos;ve sent a verification code to your email
+            We've sent a verification code to your email
           </p>
         </CardHeader>
 
@@ -159,7 +172,7 @@ export default function SignUpForm() {
 
           <div className="mt-6 text-center">
             <p className="text-sm text-default-500">
-              Didn&apos;t receive a code?{" "}
+              Didn't receive a code?{" "}
               <button
                 onClick={async () => {
                   if (signUp) {
@@ -200,6 +213,23 @@ export default function SignUpForm() {
           </div>
         )}
 
+        {/* Show a general error summary if there are any validation errors */}
+        {Object.keys(errors).length > 0 && (
+          <div className="bg-danger-50 text-danger-700 p-4 rounded-lg mb-6 flex items-center gap-2">
+            <AlertCircle className="h-5 w-5 flex-shrink-0" />
+            <div>
+              <strong>There are problems with your submission:</strong>
+              <ul className="list-disc list-inside mt-2">
+                {Object.entries(errors).map(([field, error]) => (
+                  <li key={field}>{error?.message}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+
+        {/* Hidden CAPTCHA anchor to suppress Clerk warning */}
+        <div id="clerk-captcha" style={{ display: 'none' }} />
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="space-y-2">
             <label
@@ -252,6 +282,10 @@ export default function SignUpForm() {
               {...register("password")}
               className="w-full"
             />
+            {errors.password && (
+              <p className="text-danger-600 text-sm mt-1">{errors.password.message}</p>
+            )}
+
           </div>
 
           <div className="space-y-2">
@@ -286,6 +320,10 @@ export default function SignUpForm() {
               {...register("passwordConfirmation")}
               className="w-full"
             />
+            {errors.passwordConfirmation && (
+              <p className="text-danger-600 text-sm mt-1">{errors.passwordConfirmation.message}</p>
+            )}
+
           </div>
 
           <div className="space-y-4">
